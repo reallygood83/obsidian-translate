@@ -61,7 +61,8 @@ export class Deepl extends DummyTranslate {
 		if (!this.#api_key)
 			return { status_code: 400, valid: false, message: "API key was not specified" };
 
-		this.#host = this.#api_key.endsWith(":fx") ? "https://api-free.deepl.com/v2" : "https://api.deepl.com/v2";
+		this.#host = "https://api-free.deepl.com/v2";
+
 
 		const response = await requestUrl({
 			throw: false,
