@@ -19,19 +19,6 @@ interface DeepLTranslationResult extends DeeplBaseResult {
 	translations: Array<{ text: string; detected_source_language?: string }>;
 }
 
-/**
- * @todo Add support for usage tracking
- */
-// interface DeepLUsageResult extends DeeplBaseResult {
-// 	character_count: number
-// 	character_limit: number
-// 	document_count?: number
-// 	document_limit?: number
-// 	team_document_count?: number
-// 	team_document_limit?: number
-// }
-
-// supports_formality only present for premium users
 type DeepLLanguageResult = Array<{ language: string; name: string; supports_formality?: boolean }> & DeeplBaseResult;
 
 interface DeepLGlossaryPairsResult extends DeeplBaseResult {
@@ -43,25 +30,24 @@ export class Deepl extends DummyTranslate {
 	#host: string;
 	id = "deepl";
 
-	// Body size may maximally be 128KiB
 	byte_limit = 130000;
 
 	constructor(settings: ServiceSettings) {
 		super();
 		this.#api_key = settings.api_key;
-		this.#host = settings.host || "https://api-free.deepl.com/v2";
+		this.#host = "https://api-free.deepl.com/v2"; // 강제 고정
 	}
 
 	update_settings(settings: ServiceSettings): void {
 		this.#api_key = settings.api_key ?? this.#api_key;
-		this.#host = settings.host ?? this.#host;
+		this.#host = "https://api-free.deepl.com/v2"; // 강제 고정
 	}
 
 	async service_validate(): Promise<ValidationResult> {
 		if (!this.#api_key)
 			return { status_code: 400, valid: false, message: "API key was not specified" };
 
-		this.#host = this.#api_key.endsWith(":fx") ? "https://api-free.deepl.com/v2" : "https://api.deepl.com/v2";
+		this.#host = "https://api-free.deepl.com/v2"; // 강제 고정
 
 		const response = await requestUrl({
 			throw: false,
@@ -75,7 +61,6 @@ export class Deepl extends DummyTranslate {
 		if (response.status !== 200)
 			return { status_code: response.status, valid: false, message: "Invalid API key" };
 
-		// const data: DeepLUsageResult = response.json;
 		return {
 			status_code: response.status,
 			valid: response.status === 200,
@@ -83,10 +68,6 @@ export class Deepl extends DummyTranslate {
 		};
 	}
 
-	// DeepL doesn't actually support language detection, so the text is being auto-translated to English in order
-	//   to detect the language
-	// Language detection is not really a high-volume operation, so this is good-enough.
-	// Amount of characters being sent is also reduced by the base detect method (selecting only first 20 words)
 	async service_detect(text: string): Promise<DetectionResult> {
 		const response = await requestUrl({
 			throw: false,
@@ -100,7 +81,6 @@ export class Deepl extends DummyTranslate {
 			},
 		});
 
-		// Data = [{"text":"Hello", "detected_source_language":"en"}, ...]
 		const data: DeepLTranslationResult = response.json;
 
 		if (response.status !== 200)
@@ -149,7 +129,6 @@ export class Deepl extends DummyTranslate {
 			},
 		});
 
-		// Data = [{"text":"Hello", "detected_source_language":"en"}, ...]
 		const data: DeepLTranslationResult = response.json;
 
 		if (response.status !== 200)
@@ -174,7 +153,6 @@ export class Deepl extends DummyTranslate {
 			},
 		});
 
-		// Data = [{"language":"EN", "name":"English", supports_formality: true}, ...]
 		const data: DeepLLanguageResult = response.json;
 
 		if (response.status !== 200)
@@ -220,8 +198,6 @@ export class Deepl extends DummyTranslate {
 		glossary_languages: Record<string, string[]>,
 		previous_glossaries_ids: Record<string, string>,
 	): Promise<GlossaryUploadResult> {
-		// TODO: Don't forget to rate limit this for the people who have like 8+ glossaries
-
 		for (const id of Object.values(previous_glossaries_ids)) {
 			const response = await requestUrl({
 				throw: false,
